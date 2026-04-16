@@ -1,7 +1,7 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { changePassword, logInUser, registerUser } from "../api/accountAPI";
 
-const initialState = '';
+export const initialState = '';
 
 const tokenSlice = createSlice({
     name: 'token',

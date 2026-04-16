@@ -2,7 +2,12 @@ import { createSlice } from '@reduxjs/toolkit';
 import { logInUser, registerUser, updateUser } from '../api/accountAPI';
 import type { UserProfile } from '../../utils/types';
 
-const initialState ={} as UserProfile;
+export const initialState: UserProfile = {
+    firstName: '',
+    lastName: '',
+    login: '',
+    roles: [],
+};
 
 
 const userSlice = createSlice({

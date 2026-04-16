@@ -15,14 +15,20 @@ export const SignIn = () => {
         dispatch(logInUser(createToken(login, password)));
     };
 
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter') {
+            handleClickSignIn();
+        }
+    };
+
   return (
     <div>
         <h2>Sign In</h2>
         <label>Username: 
-            <input type="text" placeholder="Username" value={login} onChange={(e) => setLogin(e.target.value)} />
+            <input type="text" placeholder="Username" value={login} onChange={(e) => setLogin(e.target.value)} onKeyDown={handleKeyDown} />
         </label>
         <label>Password: 
-            <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
+            <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={handleKeyDown} />
         </label>
 
         <button onClick ={handleClickSignIn}>Sign In</button>
