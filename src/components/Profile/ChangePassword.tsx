@@ -11,13 +11,23 @@ const ChangePassword = ({ close }: ChangePasswordProps) => {
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const dispatch = useAppDispatch();
-    const handleClickSave = () => {
-        if (newPassword === confirmPassword) {
-        // Here you would typically handle the save logic, such as sending a request to your backend API.
-            dispatch(changePassword(newPassword));
-            close();
-        } else {
+    const handleClickSave = async () => {
+        if (!currentPassword.trim()) {
+            alert('Please enter your current password.');
+            return;
+        }
+
+        if (newPassword !== confirmPassword) {
             alert('New password and confirm password do not match.');
+            return;
+        }
+
+        try {
+            await dispatch(changePassword({ oldPassword: currentPassword, newPassword })).unwrap();
+            close();
+        } catch (error) {
+            const message = error instanceof Error ? error.message : 'Failed to change password';
+            alert(message);
         }
     }
  

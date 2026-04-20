@@ -1,7 +1,7 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import type { RootState } from "../../app/store";
 import { BASE_URL, createToken } from "../../utils/constants";
-import type { UserProfile, UserRegister, UserUpdate }  from "../../utils/types";
+import type { ChangePasswordPayload, UserProfile, UserRegister, UserUpdate }  from "../../utils/types";
 
 export const registerUser = createAsyncThunk(
     'user/register',
@@ -67,19 +67,19 @@ export const updateUser = createAsyncThunk<UserProfile, UserUpdate, { state: Roo
     }
 );
 
-export const changePassword = createAsyncThunk<string, string, { state: RootState }>(
+export const changePassword = createAsyncThunk<string, ChangePasswordPayload, { state: RootState }>(
     'user/password',
-    async(newPassword: string, { getState }) => {
+    async({ oldPassword, newPassword }: ChangePasswordPayload, { getState }) => {
         const response = await fetch(`${BASE_URL}/account/password`, {
             method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': getState().token
             },
-            body: JSON.stringify({ password: newPassword }),
+            body: JSON.stringify({ oldPassword, newPassword }),
         });
         if (response.status === 401) {
-            throw new Error('Unauthorized');
+            throw new Error('Current password is incorrect');
         }
         if (!response.ok) {
             throw new Error('Failed to change password');
