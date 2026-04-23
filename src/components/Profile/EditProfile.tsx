@@ -1,19 +1,46 @@
-import { useState } from 'react'
-import { useAppDispatch } from '../../app/hooks';
-import { updateUser } from '../../features/api/accountAPI';
+import { useEffect, useState } from 'react'
+import { useAppSelector } from '../../app/hooks';
+import { useGetCurrentUserQuery, useUpdateUserMutation } from '../../features/api/accountAPI';
 
 interface EditProfileProps {
     close: () => void
 }
 
 const EditProfile = ({ close }: EditProfileProps) => {
+    const token = useAppSelector((state) => state.token);
+    const { data: user } = useGetCurrentUserQuery(undefined, {
+        skip: !token,
+    });
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
-    const dispatch = useAppDispatch();
-    const handleClickSave = () => {
-        // Here you would typically handle the save logic, such as sending a request to your backend API.
-        dispatch(updateUser({ firstName, lastName }));
-        close();
+    const [updateUser] = useUpdateUserMutation();
+
+    useEffect(() => {
+        if (!user) {
+            return;
+        }
+
+        setFirstName(user.firstName);
+        setLastName(user.lastName);
+    }, [user]);
+
+    const handleClickSave = async () => {
+        if (!user) {
+            return;
+        }
+
+        try {
+            const updatedUser = await updateUser({
+                login: user.login,
+                user: { firstName, lastName },
+            }).unwrap();
+            setFirstName(updatedUser.firstName);
+            setLastName(updatedUser.lastName);
+            close();
+        } catch (error) {
+            const message = error instanceof Error ? error.message : 'Failed to update profile';
+            alert(message);
+        }
     }
     
     const handleClickClear = () => {

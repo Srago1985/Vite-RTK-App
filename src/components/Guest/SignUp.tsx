@@ -1,16 +1,23 @@
 import { useState } from "react";
 import { useAppDispatch } from "../../app/hooks";
-import { registerUser } from "../../features/api/accountAPI";
+import { useRegisterUserMutation } from "../../features/api/accountAPI";
+import { setToken } from "../../features/token/tokenSlice";
 
 export const SignUp = () => {
     const [login, setLogin] = useState("");
     const [password, setPassword] = useState("");
     const [firstName, setFirstName] = useState("");
     const [lastName, setLastName] = useState("");
+    const [registerUser] = useRegisterUserMutation();
     const dispatch = useAppDispatch();
-    const handleClickSignUp = () => {
-        // Here you would typically handle the sign-up logic, such as sending a request to your backend API.
-        dispatch(registerUser({ login, password, firstName, lastName }));
+    const handleClickSignUp = async () => {
+        try {
+            const result = await registerUser({ login, password, firstName, lastName }).unwrap();
+            dispatch(setToken(result.token));
+        } catch (error) {
+            const message = error instanceof Error ? error.message : "Failed to sign up";
+            alert(message);
+        }
     }
   return (
     <div>

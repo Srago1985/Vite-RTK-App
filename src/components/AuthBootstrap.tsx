@@ -1,24 +1,23 @@
 import { useEffect } from 'react'
 import { useAppDispatch, useAppSelector } from '../app/hooks'
-import { logInUser } from '../features/api/accountAPI'
+import { accountAPI, useGetCurrentUserQuery } from '../features/api/accountAPI'
 import { clearToken } from '../features/token/tokenSlice'
-import { clearUser } from '../features/user/userSlice'
 
 const AuthBootstrap = () => {
     const dispatch = useAppDispatch()
     const token = useAppSelector((state) => state.token)
-    const userLogin = useAppSelector((state) => state.user.login)
+    const { isError } = useGetCurrentUserQuery(undefined, {
+        skip: !token,
+    })
 
     useEffect(() => {
-        if (!token || userLogin) {
+        if (!token || !isError) {
             return
         }
 
-        dispatch(logInUser(token)).unwrap().catch(() => {
-            dispatch(clearToken())
-            dispatch(clearUser())
-        })
-    }, [dispatch, token, userLogin])
+        dispatch(clearToken())
+        dispatch(accountAPI.util.resetApiState())
+    }, [dispatch, isError, token])
 
     return null
 }

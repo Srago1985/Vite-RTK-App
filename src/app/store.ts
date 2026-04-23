@@ -1,6 +1,7 @@
 import { configureStore } from '@reduxjs/toolkit';
-import userReducer from '../features/user/userSlice';
+import { setupListeners } from '@reduxjs/toolkit/query';
 import tokenReducer, { initialState as initialTokenState } from '../features/token/tokenSlice';
+import { accountAPI } from '../features/api/accountAPI';
 
 const loadPreloadedState = () => {
     try {
@@ -16,11 +17,14 @@ const loadPreloadedState = () => {
 
 export  const store = configureStore({
     reducer: {
-        user: userReducer,
         token: tokenReducer,
+        [accountAPI.reducerPath]: accountAPI.reducer,
     },
+    middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(accountAPI.middleware),
     preloadedState: loadPreloadedState(),
 });
+
+setupListeners(store.dispatch);
 
 store.subscribe(() => {
     try {

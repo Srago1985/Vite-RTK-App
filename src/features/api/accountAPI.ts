@@ -1,90 +1,101 @@
-import { createAsyncThunk } from "@reduxjs/toolkit";
-import type { RootState } from "../../app/store";
+import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { BASE_URL, createToken } from "../../utils/constants";
-import type { ChangePasswordPayload, UserProfile, UserRegister, UserUpdate }  from "../../utils/types";
+import type { ChangePasswordPayload, UserProfile, UserRegister, UserUpdate } from "../../utils/types";
 
-export const registerUser = createAsyncThunk(
-    'user/register',
-    async (userData: UserRegister) => {
-        const response = await fetch(`${BASE_URL}/account/register`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(userData),
-        });
-        if (response.status === 409) {
-            throw new Error(`User with login ${userData.login} already exists`);
-        }
-        if (!response.ok) {
-            throw new Error('Failed to register user');
-        }
-        const user = await response.json();
-        const token = createToken(userData.login, userData.password);
-        return { token, user };
-    }
-);
+interface AuthResult {
+    token: string;
+    user: UserProfile;
+}
 
-export const logInUser = createAsyncThunk(
-    'user/fetch',
-    async (token: string) => {
-        const response = await fetch(`${BASE_URL}/account/login`, {
-            method: 'POST',
-            headers: {
-                'Authorization': token,
-            },
-        });
-        if (response.status === 401) {
-            throw new Error('Invalid credentials');
-        }
-        if (!response.ok) {
-            throw new Error('Failed to login user');
-        }
-        const user = await response.json();
-        return { token, user };
-    }
-);
+interface UpdateUserRequest {
+    login: string;
+    user: UserUpdate;
+}
 
-export const updateUser = createAsyncThunk<UserProfile, UserUpdate, { state: RootState }>(
-    'user/update',
-    async(user: UserUpdate, { getState }) => {
-        const response = await fetch(`${BASE_URL}/account/user/${getState().user.login}`, {
-            method: 'PATCH',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': getState().token
-            },
-            body: JSON.stringify(user),
-        });
-        if (response.status === 401) {
-            throw new Error('Unauthorized');
-        }
-        if (!response.ok) {
-            throw new Error('Failed to update user');
-        }
-        return await response.json();
-        
-    }
-);
+interface ChangePasswordRequest {
+    login: string;
+    payload: ChangePasswordPayload;
+}
 
-export const changePassword = createAsyncThunk<string, ChangePasswordPayload, { state: RootState }>(
-    'user/password',
-    async({ oldPassword, newPassword }: ChangePasswordPayload, { getState }) => {
-        const response = await fetch(`${BASE_URL}/account/password`, {
-            method: 'PATCH',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': getState().token
+export const accountAPI = createApi({
+    reducerPath: "accountAPI",
+    baseQuery: fetchBaseQuery({
+        baseUrl: BASE_URL,
+        prepareHeaders: (headers, { getState }) => {
+            const state = getState() as { token?: string };
+
+            if (state.token) {
+                headers.set("Authorization", state.token);
+            }
+
+            return headers;
+        },
+    }),
+    tagTypes: ["Profile"],
+    endpoints: (builder) => ({
+        getCurrentUser: builder.query<UserProfile, void>({
+            query: () => ({
+                url: "/account/login",
+                method: "POST",
+            }),
+            providesTags: ["Profile"],
+        }),
+        registerUser: builder.mutation<AuthResult, UserRegister>({
+            query: (userData) => ({
+                url: "/account/register",
+                method: "POST",
+                body: userData,
+            }),
+            transformResponse: (response: UserProfile, _meta, userData) => {
+                return {
+                    token: createToken(userData.login, userData.password),
+                    user: response,
+                };
             },
-            body: JSON.stringify({ oldPassword, newPassword }),
-        });
-        if (response.status === 401) {
-            throw new Error('Current password is incorrect');
-        }
-        if (!response.ok) {
-            throw new Error('Failed to change password');
-        }
-        const login = getState().user.login;
-        return createToken(login, newPassword);
-    }
-);
+            invalidatesTags: ["Profile"],
+        }),
+        logInUser: builder.mutation<AuthResult, string>({
+            query: (token) => ({
+                url: "/account/login",
+                method: "POST",
+                headers: {
+                    Authorization: token,
+                },
+            }),
+            transformResponse: (response: UserProfile, _meta, token) => {
+                return {
+                    token,
+                    user: response,
+                };
+            },
+            invalidatesTags: ["Profile"],
+        }),
+        updateUser: builder.mutation<UserProfile, UpdateUserRequest>({
+            query: ({ login, user }) => ({
+                url: `/account/user/${login}`,
+                method: "PATCH",
+                body: user,
+            }),
+            invalidatesTags: ["Profile"],
+        }),
+        changePassword: builder.mutation<string, ChangePasswordRequest>({
+            query: ({ payload }) => ({
+                url: "/account/password",
+                method: "PATCH",
+                body: payload,
+            }),
+            transformResponse: (_response: unknown, _meta, request) => {
+                return createToken(request.login, request.payload.newPassword);
+            },
+            invalidatesTags: ["Profile"],
+        }),
+    }),
+});
+
+export const {
+    useGetCurrentUserQuery,
+    useRegisterUserMutation,
+    useLogInUserMutation,
+    useUpdateUserMutation,
+    useChangePasswordMutation,
+} = accountAPI;

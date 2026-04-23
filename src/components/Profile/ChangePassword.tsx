@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { useAppDispatch } from '../../app/hooks';
-import { changePassword } from '../../features/api/accountAPI';
+import { useAppDispatch, useAppSelector } from '../../app/hooks';
+import { useChangePasswordMutation, useGetCurrentUserQuery } from '../../features/api/accountAPI.ts';
+import { setToken } from '../../features/token/tokenSlice.tsx';
 
 interface ChangePasswordProps {
     close: () => void
@@ -10,8 +11,17 @@ const ChangePassword = ({ close }: ChangePasswordProps) => {
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const token = useAppSelector((state) => state.token);
+    const { data: user } = useGetCurrentUserQuery(undefined, {
+        skip: !token,
+    });
+    const [changePassword] = useChangePasswordMutation();
     const dispatch = useAppDispatch();
     const handleClickSave = async () => {
+        if (!user) {
+            return;
+        }
+
         if (!currentPassword.trim()) {
             alert('Please enter your current password.');
             return;
@@ -23,7 +33,11 @@ const ChangePassword = ({ close }: ChangePasswordProps) => {
         }
 
         try {
-            await dispatch(changePassword({ oldPassword: currentPassword, newPassword })).unwrap();
+            const token = await changePassword({
+                login: user.login,
+                payload: { oldPassword: currentPassword, newPassword },
+            }).unwrap();
+            dispatch(setToken(token));
             close();
         } catch (error) {
             const message = error instanceof Error ? error.message : 'Failed to change password';
