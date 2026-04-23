@@ -1,67 +1,43 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react';
 import { useAppSelector } from '../../app/hooks';
 import { useGetCurrentUserQuery, useUpdateUserMutation } from '../../features/api/accountAPI';
+import type { UserProfile } from '../../utils/types'; 
 
-interface EditProfileProps {
-    close: () => void
-}
+type EditProfileFormProps = {
+  user: UserProfile;
+  close: () => void;
+};
 
-const EditProfile = ({ close }: EditProfileProps) => {
-    const token = useAppSelector((state) => state.token);
-    const { data: user } = useGetCurrentUserQuery(undefined, {
-        skip: !token,
-    });
-    const [firstName, setFirstName] = useState('');
-    const [lastName, setLastName] = useState('');
-    const [updateUser] = useUpdateUserMutation();
+function EditProfileForm({ user, close }: EditProfileFormProps) {
+  const [firstName, setFirstName] = useState(user.firstName);
+  const [lastName, setLastName] = useState(user.lastName);
+  const [updateUser] = useUpdateUserMutation();
 
-    useEffect(() => {
-        if (!user) {
-            return;
-        }
+  const handleSave = async () => {
+    await updateUser({
+      login: user.login,
+      user: { firstName, lastName },
+    }).unwrap();
+    close();
+  };
 
-        setFirstName(user.firstName);
-        setLastName(user.lastName);
-    }, [user]);
-
-    const handleClickSave = async () => {
-        if (!user) {
-            return;
-        }
-
-        try {
-            const updatedUser = await updateUser({
-                login: user.login,
-                user: { firstName, lastName },
-            }).unwrap();
-            setFirstName(updatedUser.firstName);
-            setLastName(updatedUser.lastName);
-            close();
-        } catch (error) {
-            const message = error instanceof Error ? error.message : 'Failed to update profile';
-            alert(message);
-        }
-    }
-    
-    const handleClickClear = () => {
-        setFirstName('');
-        setLastName('');
-    }
   return (
     <div>
-        <label>
-            First name:
-            <input type="text" placeholder="First name" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
-        </label>
-        <label>
-            Last name:
-            <input type="text" placeholder="Last name" value={lastName} onChange={(e) => setLastName(e.target.value)} />
-        </label>
-        <button onClick={() => {handleClickSave()}}>Save and Close</button>
-        <button onClick={close}>Close without Saving</button>
-        <button onClick={() => {handleClickClear()}}>Clear</button>
+      <input value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+      <input value={lastName} onChange={(e) => setLastName(e.target.value)} />
+      <button onClick={handleSave}>Save</button>
     </div>
-  )
+  );
 }
+
+const EditProfile = ({ close }: { close: () => void }) => {
+  const token = useAppSelector((state) => state.token);
+  const { data: user } = useGetCurrentUserQuery(undefined, { skip: !token });
+
+  if (!user) return null;
+
+  // key нужен, чтобы форма переинициализировалась при смене пользователя
+  return <EditProfileForm key={user.login} user={user} close={close} />;
+};
 
 export default EditProfile
