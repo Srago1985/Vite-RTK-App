@@ -52,7 +52,6 @@ export const accountAPI = createApi({
                     user: response,
                 };
             },
-            invalidatesTags: ["Profile"],
         }),
         logInUser: builder.mutation<AuthResult, string>({
             query: (token) => ({
@@ -87,7 +86,6 @@ export const accountAPI = createApi({
             transformResponse: (_response: unknown, _meta, request) => {
                 return createToken(request.login, request.payload.newPassword);
             },
-            invalidatesTags: ["Profile"],
         }),
     }),
 });
