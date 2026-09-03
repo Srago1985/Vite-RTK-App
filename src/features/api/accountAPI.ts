@@ -81,7 +81,12 @@ export const accountAPI = createApi({
             query: ({ payload }) => ({
                 url: "/account/password",
                 method: "PATCH",
-                body: payload,
+                headers: {
+                    "X-Password": payload.oldPassword,
+                },
+                body: {
+                    password: payload.newPassword,
+                },
             }),
             transformResponse: (_response: unknown, _meta, request) => {
                 return createToken(request.login, request.payload.newPassword);

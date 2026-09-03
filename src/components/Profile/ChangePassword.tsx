@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import type { FetchBaseQueryError } from '@reduxjs/toolkit/query';
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
 import { useChangePasswordMutation, useGetCurrentUserQuery } from '../../features/api/accountAPI.ts';
 import { setToken } from '../../features/token/tokenSlice.tsx';
@@ -17,6 +18,29 @@ const ChangePassword = ({ close }: ChangePasswordProps) => {
     });
     const [changePassword] = useChangePasswordMutation();
     const dispatch = useAppDispatch();
+
+    const getChangePasswordErrorMessage = (error: unknown) => {
+        if (!error || typeof error !== 'object' || !('status' in error)) {
+            return 'Failed to change password';
+        }
+
+        const queryError = error as FetchBaseQueryError;
+
+        if (queryError.status === 401) {
+            return 'Current password is incorrect.';
+        }
+
+        if (queryError.status === 400) {
+            return 'Invalid new password.';
+        }
+
+        if (queryError.status === 'FETCH_ERROR') {
+            return 'Network or CORS error while changing password.';
+        }
+
+        return 'Failed to change password';
+    };
+
     const handleClickSave = async () => {
         if (!user) {
             return;
@@ -40,8 +64,7 @@ const ChangePassword = ({ close }: ChangePasswordProps) => {
             dispatch(setToken(token));
             close();
         } catch (error) {
-            const message = error instanceof Error ? error.message : 'Failed to change password';
-            alert(message);
+            alert(getChangePasswordErrorMessage(error));
         }
     }
  
